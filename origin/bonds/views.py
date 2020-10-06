@@ -5,30 +5,26 @@ from rest_framework import status
 
 from .serializers import BondSerializer
 from .models import Bond
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-
-class HelloWorld(APIView):
-    def get(self, request):
-        return Response("Hello World!")
 
 
 class BondView(APIView):
     def get(self, request):
 
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request.data['username']
+        password = request.data['password']
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
 
-            bonds = Bond.objects.all().filter(username=username)
+            bonds = Bond.objects.all().filter(user=user)
             return Response({'bonds': bonds})
 
     def post(self, request):
 
-        username = request.POST['username']
-        password = request.POST['password']
+        print(request.data)
+        username = request.data['username']
+        password = request.data['password']
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
@@ -44,7 +40,7 @@ class BondView(APIView):
                     legal_name = lei_request.json()[0]['Entity']['LegalName']['$']
 
                     data['legal_name'] = legal_name.replace(" ", "")
-                    data['username'] = username
+                    data['user'] = user
 
                     serializer = BondSerializer(data=data)
 
