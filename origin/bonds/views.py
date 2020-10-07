@@ -7,47 +7,48 @@ from .serializers import BondSerializer
 from .models import Bond
 from django.contrib.auth import authenticate
 
+from django.contrib.auth.models import User
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
 
 class BondView(APIView):
+
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request):
 
-        username = request.data['username']
-        password = request.data['password']
-        user = authenticate(request, username=username, password=password)
+        bonds = Bond.objects.all().filter(username=request.user.username)
 
-        if user is not None:
-
-            bonds = Bond.objects.all().filter(user=user)
-            return Response({'bonds': bonds})
+        return Response({'bonds': bonds})
 
     def post(self, request):
 
-        print(request.data)
-        username = request.data['username']
-        password = request.data['password']
-        user = authenticate(request, username=username, password=password)
+        # print(request.data)
+        # username = request.data['username']
+        # password = request.data['password']
+        # user = authenticate(request, username=username, password=password)
 
-        if user is not None:
+        # if user is not None:
 
-            data = request.data
+        data = request.data
 
-            lei_request = requests.get('https://leilookup.gleif.org/api/v2/leirecords?lei=' + data['lei'])
+        lei_request = requests.get('https://leilookup.gleif.org/api/v2/leirecords?lei=' + data['lei'])
 
-            if lei_request.status_code == 200:
+        if lei_request.status_code == 200:
 
-                if len(lei_request.json()) > 0:
+            if len(lei_request.json()) > 0:
 
-                    legal_name = lei_request.json()[0]['Entity']['LegalName']['$']
+                legal_name = lei_request.json()[0]['Entity']['LegalName']['$']
 
-                    data['legal_name'] = legal_name.replace(" ", "")
-                    data['user'] = user
+                data['legal_name'] = legal_name.replace(" ", "")
+                data['username'] = request.user.username
 
-                    serializer = BondSerializer(data=data)
+                serializer = BondSerializer(data=data)
 
-                    if serializer.is_valid(raise_exception=True):
-                        serializer.save()
-                        return Response(serializer.data, status=status.HTTP_201_CREATED)
-                    return Response()
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response()
 
-            else:
-                return Response('HTTP status code: ' + str(lei_request.status_code) + ' - ' + lei_request.json()['message'])
+        else:
+            return Response('HTTP status code: ' + str(lei_request.status_code) + ' - ' + lei_request.json()['message'])

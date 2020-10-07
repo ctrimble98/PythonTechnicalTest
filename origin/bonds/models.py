@@ -9,4 +9,4 @@ class Bond(models.Model):
     maturity = models.DateField()
     lei = models.CharField(max_length=20)
     legal_name = models.CharField(max_length=60)
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    username = models.CharField(max_length=60)
