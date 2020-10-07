@@ -5,10 +5,7 @@ from rest_framework import status
 
 from .serializers import BondSerializer
 from .models import Bond
-from django.contrib.auth import authenticate
-
-from django.contrib.auth.models import User
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 
 
 class BondView(APIView):
@@ -19,16 +16,12 @@ class BondView(APIView):
 
         bonds = Bond.objects.all().filter(username=request.user.username)
 
+        if len(bonds) is 0:
+            return Response("No bonds for this user found", status=status.HTTP_404_NOT_FOUND)
+
         return Response({'bonds': bonds})
 
     def post(self, request):
-
-        # print(request.data)
-        # username = request.data['username']
-        # password = request.data['password']
-        # user = authenticate(request, username=username, password=password)
-
-        # if user is not None:
 
         data = request.data
 
@@ -48,7 +41,7 @@ class BondView(APIView):
                 if serializer.is_valid():
                     serializer.save()
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
-                return Response()
+                return Response("Invalid LEI", status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
         else:
             return Response('HTTP status code: ' + str(lei_request.status_code) + ' - ' + lei_request.json()['message'])

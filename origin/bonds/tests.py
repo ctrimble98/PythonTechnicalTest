@@ -28,21 +28,24 @@ class BondTest(APITestCase):
     else:
         test_user1 = User.objects.get_by_natural_key(username="testuser1")
 
+    # Test for a post request with a valid bond with a valid lei
     def test_post(self):
+
         client = APIClient()
         client.force_authenticate(user=self.test_user1)
 
-        # print({**self.example_bond, **self.test_user1})
         resp = client.post("/bonds/", self.example_bond, format="json",)
-        print(resp.status_code)
-        assert resp.status_code == 201 and Bond.objects.get(isin="FR0000131104").legal_name == "BNPPARIBAS"
+        assert resp.status_code is 201 and Bond.objects.get(isin="FR0000131104").legal_name == "BNPPARIBAS"
 
+    # Test for a post request with a bond with a invalid lei
     def test_post_bad_lei(self):
+
         client = APIClient()
         client.force_authenticate(user=self.test_user1)
-        # print({**self.example_bond, **self.test_user1})
-        client.post("/bonds/", self.wrong_lei_bond, format="json", )
-        assert Bond.objects.get(isin=self.wrong_lei_bond['lei']).legal_name == "BNPPARIBAS"
+
+        resp = client.post("/bonds/", self.wrong_lei_bond, format="json", )
+
+        assert resp.status_copde is 422 and Bond.objects.filter(isin=self.wrong_lei_bond['isin']).exists()
 
     def test_get(self):
 
@@ -50,4 +53,4 @@ class BondTest(APITestCase):
         client.force_authenticate(user=self.test_user1)
 
         resp = client.get("/bonds/")
-        assert resp.status_code == 200
+        assert resp.status_code is 200
