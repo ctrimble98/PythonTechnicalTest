@@ -4,6 +4,8 @@ from .models import Bond
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 
+import json
+
 
 class BondTest(APITestCase):
 
@@ -35,7 +37,7 @@ class BondTest(APITestCase):
         client.force_authenticate(user=self.test_user1)
 
         resp = client.post("/bonds/", self.example_bond, format="json",)
-        assert resp.status_code is 201 and Bond.objects.get(isin="FR0000131104").legal_name == "BNPPARIBAS"
+        assert resp.status_code == 201 and Bond.objects.get(isin=self.example_bond['isin']).legal_name == "BNPPARIBAS"
 
     # Test for a post request with a bond with a invalid lei
     def test_post_bad_lei(self):
@@ -45,12 +47,40 @@ class BondTest(APITestCase):
 
         resp = client.post("/bonds/", self.wrong_lei_bond, format="json", )
 
-        assert resp.status_copde is 422 and Bond.objects.filter(isin=self.wrong_lei_bond['isin']).exists()
+        assert resp.status_code == 422 and not Bond.objects.filter(isin=self.wrong_lei_bond['isin']).exists()
 
+    # Test for a valid get
     def test_get(self):
+
+        client = APIClient()
+        client.force_authenticate(user=self.test_user1)
+        client.post("/bonds/", self.example_bond, format="json", )
+
+        resp = client.get("/bonds/")
+        data = json.loads(resp.data)
+        assert resp.status_code == 200 and data[0]['fields']['isin'] == self.example_bond['isin']
+
+    # Test get with no bonds
+    def test_get_no_bonds(self):
 
         client = APIClient()
         client.force_authenticate(user=self.test_user1)
 
         resp = client.get("/bonds/")
-        assert resp.status_code is 200
+        assert resp.status_code == 404
+
+    # Test that filtering occurs for users
+    def test_get_only_users_bonds(self):
+
+        client = APIClient()
+        client.force_authenticate(user=self.test_user1)
+        client.post("/bonds/", self.example_bond, format="json", )
+
+        test_user2 = User.objects.create_user(username="testuser2", password="testpass321!")
+        client = APIClient()
+        client.force_authenticate(user=test_user2)
+        client.post("/bonds/", self.example_bond, format="json", )
+
+        resp = client.get("/bonds/")
+        data = json.loads(resp.data)
+        assert resp.status_code == 200 and len(data) == 1
